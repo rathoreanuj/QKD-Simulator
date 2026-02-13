@@ -1,0 +1,4 @@
+qiskit>=1.0.0
+numpy>=1.26.0
+matplotlib>=3.7.0
+pillow>=10.0.0
