@@ -18,35 +18,121 @@ An educational tool for simulating quantum key distribution protocols based on t
   - S statistic for E91 protocol (Bell test)
   - Combined efficiency
 
-## Installation
+## Quick Start (Windows)
+
+### Method 1: Use the Batch File (Easiest)
+Double-click `run_simulator.bat` or run it from command prompt:
+```cmd
+run_simulator.bat
+```
+This will automatically check Python installation, install dependencies, and launch the GUI.
+
+### Method 2: Manual Setup
+1. Open Command Prompt or PowerShell
+2. Navigate to the project directory
+3. Install dependencies and run:
+```cmd
+pip install -r requirements.txt
+python qkd_gui.py
+```
+
+## Detailed Installation Guide
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- pip package manager
+- **Python 3.8 or higher**: Download from [python.org](https://www.python.org/downloads/)
+  - During installation, check "Add Python to PATH"
+- **pip package manager**: Included with Python 3.8+
 
-### Steps
+### Step 1: Verify Python Installation
 
-1. **Clone or navigate to the project directory**:
-   ```bash
-   cd "c:\B TECH IIITS\Sem 6\Additional project under kartik sir\Demo"
-   ```
+Open Command Prompt or PowerShell and verify Python is installed:
+```cmd
+python --version
+```
+You should see output like: `Python 3.10.x` or higher
 
-2. **Install required packages**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Check pip is installed:
+```cmd
+pip --version
+```
 
-   Or install individually:
-   ```bash
-   pip install qiskit qiskit-aer numpy matplotlib pillow
-   ```
+### Step 2: Navigate to Project Directory
+
+```cmd
+cd "c:\B TECH IIITS\Sem 6\Additional project under kartik sir\QKD Simulator"
+```
+
+### Step 3: Set Up Python Virtual Environment (Recommended)
+
+A virtual environment keeps project dependencies isolated:
+
+**Create virtual environment:**
+```cmd
+python -m venv venv
+```
+
+**Activate virtual environment:**
+```cmd
+venv\Scripts\activate
+```
+You should see `(venv)` prefix in your command prompt.
+
+**To deactivate later:**
+```cmd
+deactivate
+```
+
+### Step 4: Install Required Packages
+
+**Option A - Install from requirements.txt (recommended):**
+```cmd
+pip install -r requirements.txt
+```
+
+**Option B - Install packages individually:**
+```cmd
+pip install qiskit>=1.0.0
+pip install numpy>=1.26.0
+pip install matplotlib>=3.7.0
+pip install pillow>=10.0.0
+```
+
+**Verify installation:**
+```cmd
+pip list
+```
+You should see qiskit, numpy, matplotlib, and pillow in the list.
+
+### Step 5: Run the Simulator
+
+**Option A - GUI Interface (Recommended for beginners):**
+```cmd
+python qkd_gui.py
+```
+
+**Option B - Command-Line Interface:**
+```cmd
+python run_simulation.py ideal BB84
+```
+Available configurations: `ideal`, `short`, `long`, `noisy`  
+Available protocols: `BB84`, `B92`, `E91`, `BBM92`
+
+**Option C - Quick Test:**
+```cmd
+python quick_test.py
+```
+
+**Option D - Compare Protocols:**
+```cmd
+python compare_protocols.py
+```
 
 ## Usage
 
-### Running the Application
+### Running the GUI Application
 
-```bash
+```cmd
 python qkd_gui.py
 ```
 
@@ -171,34 +257,86 @@ python qkd_gui.py
 
 ## Troubleshooting
 
-### Import Errors
+### Python Environment Issues
+
+**Issue**: `python` command not recognized
+```
+'python' is not recognized as an internal or external command
+```
+**Solution**: 
+1. Make sure Python is installed
+2. Add Python to PATH:
+   - Windows: Search "Environment Variables" → Edit PATH → Add Python installation directory
+   - Or reinstall Python and check "Add Python to PATH" during installation
+
+**Issue**: Multiple Python versions installed
+**Solution**: 
+- Use `py -3` or `py -3.10` to specify version
+- Or use virtual environment to isolate project
+
+**Issue**: Virtual environment not activating
+**Solution**: 
+- For PowerShell: If you get execution policy error, run:
+  ```powershell
+  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+  ```
+- Then try activating again: `venv\Scripts\activate`
+
+### Package Installation Issues
+
+**Issue**: Import Errors
 ```
 ImportError: No module named 'qiskit'
 ```
-**Solution**: Install required packages:
-```bash
-pip install qiskit qiskit-aer
-```
+**Solution**: 
+1. Make sure virtual environment is activated (if using one)
+2. Install required packages:
+   ```cmd
+   pip install qiskit qiskit-aer numpy matplotlib pillow
+   ```
 
-### Slow Simulations
-**Issue**: Large number of qubits takes too long
+**Issue**: pip install fails with permission error
+**Solution**: 
+- Use `--user` flag: `pip install --user -r requirements.txt`
+- Or use virtual environment (recommended)
+
+**Issue**: Conflicting package versions
+**Solution**: 
+1. Create a fresh virtual environment
+2. Install clean dependencies:
+   ```cmd
+   python -m venv venv_new
+   venv_new\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+### Runtime Issues
+
+**Issue**: Slow Simulations
+**Symptom**: Large number of qubits takes too long
 
 **Solution**: 
 - Start with fewer qubits (10,000 - 100,000)
 - Increase for final results
 - High losses require more qubits for reliable statistics
 
-### Unreliable QBER
-**Issue**: QBER fluctuates heavily between runs
+**Issue**: Unreliable QBER
+**Symptom**: QBER fluctuates heavily between runs
 
 **Solution**: Increase number of qubits to improve statistics
 
-### GUI Not Responding
-**Issue**: Application freezes during simulation
+**Issue**: GUI Not Responding
+**Symptom**: Application freezes during simulation
 
 **Note**: This is normal for large simulations (Progress bar shows status)
 - Use Abort button if needed
 - Consider reducing number of qubits
+
+**Issue**: GUI doesn't open or crashes on startup
+**Solution**: 
+- Make sure tkinter is installed (usually included with Python)
+- Try: `python -m tkinter` to test tkinter installation
+- Reinstall Python if tkinter is missing
 
 ## References
 
