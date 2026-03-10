@@ -1,0 +1,29 @@
+.header {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: 30px 20px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.header-content h1 {
+  font-size: 2.5em;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.subtitle {
+  font-size: 1.1em;
+  opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+  .header-content h1 {
+    font-size: 1.8em;
+  }
+
+  .subtitle {
+    font-size: 0.9em;
+  }
+}

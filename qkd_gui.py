@@ -41,21 +41,22 @@ class QKDSimulatorGUI:
         self.create_multiple_simulation_tab()
         
     def create_single_simulation_tab(self):
-        """Create the single simulation tab with three columns"""
+        """Create the single simulation tab with two rows"""
         
-        # Create three main frames
+        # Row 0: System Parameters and Simulation Settings
         left_frame = ttk.Frame(self.single_tab, padding="10")
         left_frame.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.E, tk.W), padx=5)
         
         middle_frame = ttk.Frame(self.single_tab, padding="10")
         middle_frame.grid(row=0, column=1, sticky=(tk.N, tk.S, tk.E, tk.W), padx=5)
         
-        right_frame = ttk.Frame(self.single_tab, padding="10")
-        right_frame.grid(row=0, column=2, sticky=(tk.N, tk.S, tk.E, tk.W), padx=5)
+        # Row 1: Results for all 4 protocols
+        results_row_frame = ttk.Frame(self.single_tab, padding="10")
+        results_row_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.N, tk.S, tk.E, tk.W), padx=5, pady=10)
         
         # Progress bar at bottom
         self.progress_frame = ttk.Frame(self.single_tab)
-        self.progress_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.E, tk.W), pady=5)
+        self.progress_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.E, tk.W), pady=5)
         
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(self.progress_frame, variable=self.progress_var, 
@@ -65,8 +66,8 @@ class QKDSimulatorGUI:
         # Configure column weights
         self.single_tab.columnconfigure(0, weight=1)
         self.single_tab.columnconfigure(1, weight=1)
-        self.single_tab.columnconfigure(2, weight=1)
         self.single_tab.rowconfigure(0, weight=1)
+        self.single_tab.rowconfigure(1, weight=1)
         
         # LEFT COLUMN - System Parameters
         ttk.Label(left_frame, text="System parameters", font=('Arial', 12, 'bold')).grid(
@@ -97,14 +98,6 @@ class QKDSimulatorGUI:
             row=0, column=0, columnspan=2, pady=10)
         
         row = 1
-        
-        # Protocol selection
-        ttk.Label(middle_frame, text="Protocol").grid(row=row, column=0, sticky=tk.W, pady=5)
-        self.protocol_var = tk.StringVar(value="E91")
-        protocol_combo = ttk.Combobox(middle_frame, textvariable=self.protocol_var, 
-                                     values=["BB84", "B92", "E91", "BBM92"], width=13, state='readonly')
-        protocol_combo.grid(row=row, column=1, pady=5, padx=5)
-        row += 1
         
         # Checkboxes for enabling features
         self.losses_enabled = tk.BooleanVar(value=True)
@@ -153,26 +146,37 @@ class QKDSimulatorGUI:
         ttk.Button(middle_frame, text="Abort", command=self.abort_simulation).grid(
             row=row, column=0, columnspan=2, pady=5, sticky=(tk.E, tk.W))
         
-        # RIGHT COLUMN - Results
-        ttk.Label(right_frame, text="Results", font=('Arial', 12, 'bold')).grid(
-            row=0, column=0, columnspan=2, pady=10)
-        
+        # RESULTS ROW - 4 columns for 4 protocols
+        protocols = ["BB84", "B92", "E91", "BBM92"]
         self.results_labels = {}
-        results_config = [
-            ("Key length", "key_length", ""),
-            ("Key rate", "key_rate", "Hz"),
-            ("QBER", "qber", "%"),
-            ("S", "s_statistic", ""),
-            ("Combined efficiency", "combined_efficiency", "%")
-        ]
         
-        row = 1
-        for label, key, unit in results_config:
-            ttk.Label(right_frame, text=label).grid(row=row, column=0, sticky=tk.W, pady=5)
-            result_label = ttk.Label(right_frame, text="-", font=('Arial', 10))
-            result_label.grid(row=row, column=1, sticky=tk.E, pady=5)
-            self.results_labels[key] = (result_label, unit)
-            row += 1
+        for col, protocol in enumerate(protocols):
+            # Create frame for each protocol
+            protocol_frame = ttk.Frame(results_row_frame, padding="10", relief="groove", borderwidth=2)
+            protocol_frame.grid(row=0, column=col, sticky=(tk.N, tk.S, tk.E, tk.W), padx=5)
+            results_row_frame.columnconfigure(col, weight=1)
+            
+            # Protocol header
+            ttk.Label(protocol_frame, text=protocol, font=('Arial', 14, 'bold')).grid(
+                row=0, column=0, columnspan=2, pady=10)
+            
+            # Results for this protocol
+            self.results_labels[protocol] = {}
+            results_config = [
+                ("Key length", "key_length", ""),
+                ("Key rate", "key_rate", "Hz"),
+                ("QBER", "qber", "%"),
+                ("S", "s_statistic", ""),
+                ("Combined efficiency", "combined_efficiency", "%")
+            ]
+            
+            result_row = 1
+            for label, key, unit in results_config:
+                ttk.Label(protocol_frame, text=label).grid(row=result_row, column=0, sticky=tk.W, pady=3, padx=5)
+                result_label = ttk.Label(protocol_frame, text="-", font=('Arial', 9))
+                result_label.grid(row=result_row, column=1, sticky=tk.E, pady=3, padx=5)
+                self.results_labels[protocol][key] = (result_label, unit)
+                result_row += 1
     
     def create_multiple_simulation_tab(self):
         """Create the multiple simulations tab"""
@@ -204,6 +208,14 @@ class QKDSimulatorGUI:
             row=0, column=0, columnspan=2, pady=10)
         
         row = 1
+        
+        # Protocol selection (for multiple simulations tab only)
+        ttk.Label(left_frame, text="Protocol").grid(row=row, column=0, sticky=tk.W, pady=5)
+        self.multi_protocol_var = tk.StringVar(value="BB84")
+        protocol_combo = ttk.Combobox(left_frame, textvariable=self.multi_protocol_var, width=18, state='readonly',
+                                     values=["BB84", "B92", "E91", "BBM92"])
+        protocol_combo.grid(row=row, column=1, pady=5, padx=5)
+        row += 1
         
         # Select x parameter
         ttk.Label(left_frame, text="Select x parameter").grid(row=row, column=0, sticky=tk.W, pady=5)
@@ -298,67 +310,69 @@ class QKDSimulatorGUI:
         return params
     
     def run_single_simulation(self):
-        """Run a single simulation"""
+        """Run simulations for all 4 protocols"""
         self.abort_flag = False
         
         try:
             params = self.get_simulation_params()
-            protocol = self.protocol_var.get()
             
-            # Clear previous results
-            for key, (label, unit) in self.results_labels.items():
-                label.config(text="-")
+            # Clear previous results for all protocols
+            for protocol in ["BB84", "B92", "E91", "BBM92"]:
+                for key, (label, unit) in self.results_labels[protocol].items():
+                    label.config(text="-")
             
             # Run in thread
-            thread = threading.Thread(target=self._run_simulation_thread, args=(protocol, params))
+            thread = threading.Thread(target=self._run_all_protocols_thread, args=(params,))
             thread.start()
             
         except Exception as e:
             messagebox.showerror("Error", str(e))
     
-    def _run_simulation_thread(self, protocol, params):
-        """Thread function for running simulation"""
+    def _run_all_protocols_thread(self, params):
+        """Thread function for running all 4 protocols"""
+        protocols = ["BB84", "B92", "E91", "BBM92"]
         try:
-            self.progress_var.set(10)
+            for i, protocol in enumerate(protocols):
+                if self.abort_flag:
+                    self.progress_var.set(0)
+                    return
+                
+                # Update progress (each protocol gets 25% of the bar)
+                self.progress_var.set(i * 25)
+                
+                # Run simulation for this protocol
+                if protocol == "BB84":
+                    results = self.simulator.simulate_bb84(params)
+                elif protocol == "B92":
+                    results = self.simulator.simulate_b92(params)
+                elif protocol == "E91":
+                    results = self.simulator.simulate_e91(params)
+                elif protocol == "BBM92":
+                    results = self.simulator.simulate_bbm92(params)
+                
+                # Update results for this protocol
+                self.root.after(0, self._update_protocol_results, protocol, results)
+                
+                # Update progress after completion
+                self.progress_var.set((i + 1) * 25)
             
-            # Run simulation
-            if protocol == "BB84":
-                results = self.simulator.simulate_bb84(params)
-            elif protocol == "B92":
-                results = self.simulator.simulate_b92(params)
-            elif protocol == "E91":
-                results = self.simulator.simulate_e91(params)
-            elif protocol == "BBM92":
-                results = self.simulator.simulate_bbm92(params)
-            
-            if self.abort_flag:
-                self.progress_var.set(0)
-                return
-            
-            self.progress_var.set(90)
-            
-            # Generate sample circuit
-            self.sample_circuit = self.simulator.get_sample_circuit(protocol, params)
-            
-            self.progress_var.set(100)
-            
-            # Update results
-            self.root.after(0, self._update_results, results)
+            # Generate sample circuit for BB84
+            self.sample_circuit = self.simulator.get_sample_circuit("BB84", params)
             
         except Exception as e:
             self.root.after(0, messagebox.showerror, "Error", str(e))
         finally:
             self.progress_var.set(0)
     
-    def _update_results(self, results):
-        """Update result labels"""
-        for key, (label, unit) in self.results_labels.items():
+    def _update_protocol_results(self, protocol, results):
+        """Update result labels for a specific protocol"""
+        for key, (label, unit) in self.results_labels[protocol].items():
             value = results.get(key)
             if value is None:
                 label.config(text="-")
             elif key == 'key_rate':
                 # Format with thousands separator
-                label.config(text=f"{value:,.2f} {unit}")
+                label.config(text=f"{value:,.0f} {unit}")
             elif key == 'key_length':
                 label.config(text=f"{int(value)}")
             elif key == 's_statistic':
@@ -461,7 +475,7 @@ class QKDSimulatorGUI:
             
             # Get base parameters
             params = self.get_simulation_params()
-            protocol = self.protocol_var.get()
+            protocol = self.multi_protocol_var.get()
             
             for i, x_val in enumerate(x_values):
                 if self.abort_flag:
