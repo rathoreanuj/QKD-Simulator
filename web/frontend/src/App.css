@@ -4,6 +4,37 @@
   flex-direction: column;
 }
 
+/* ── Tab navigation ── */
+.tab-nav {
+  background: white;
+  border-bottom: 2px solid #e0e0e0;
+  display: flex;
+  padding: 0 20px;
+}
+
+.tab-btn {
+  padding: 14px 28px;
+  border: none;
+  background: none;
+  font-size: 1em;
+  font-weight: 500;
+  color: #777;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.tab-btn:hover {
+  color: #667eea;
+}
+
+.tab-btn.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  font-weight: 700;
+}
+
 .main-container {
   flex: 1;
   max-width: 1400px;
