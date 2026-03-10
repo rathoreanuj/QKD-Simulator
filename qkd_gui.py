@@ -209,14 +209,6 @@ class QKDSimulatorGUI:
         
         row = 1
         
-        # Protocol selection (for multiple simulations tab only)
-        ttk.Label(left_frame, text="Protocol").grid(row=row, column=0, sticky=tk.W, pady=5)
-        self.multi_protocol_var = tk.StringVar(value="BB84")
-        protocol_combo = ttk.Combobox(left_frame, textvariable=self.multi_protocol_var, width=18, state='readonly',
-                                     values=["BB84", "B92", "E91", "BBM92"])
-        protocol_combo.grid(row=row, column=1, pady=5, padx=5)
-        row += 1
-        
         # Select x parameter
         ttk.Label(left_frame, text="Select x parameter").grid(row=row, column=0, sticky=tk.W, pady=5)
         self.x_param_var = tk.StringVar(value="Fiber loss")
@@ -267,11 +259,15 @@ class QKDSimulatorGUI:
         # Plot section
         ttk.Label(right_frame, text="Results", font=('Arial', 12, 'bold')).pack(pady=10)
         
-        self.fig = Figure(figsize=(7, 5), dpi=100)
-        self.ax = self.fig.add_subplot(111)
-        self.ax.set_xlabel("x")
-        self.ax.set_ylabel("y")
-        self.ax.grid(True, alpha=0.3)
+        self.fig = Figure(figsize=(10, 7), dpi=100)
+        protocols = ["BB84", "B92", "E91", "BBM92"]
+        self.axes = {}
+        for idx, protocol in enumerate(protocols):
+            ax = self.fig.add_subplot(2, 2, idx + 1)
+            ax.set_title(protocol, fontsize=11, fontweight='bold')
+            ax.grid(True, alpha=0.3)
+            self.axes[protocol] = ax
+        self.fig.tight_layout(pad=2.0)
         
         self.canvas = FigureCanvasTkAgg(self.fig, master=right_frame)
         self.canvas.draw()
@@ -455,7 +451,7 @@ class QKDSimulatorGUI:
             y_key = result_map[y_param]
             
             # Run in thread
-            thread = threading.Thread(target=self._run_multiple_thread, 
+            thread = threading.Thread(target=self._run_multiple_thread,
                                      args=(x_key, y_key, start_val, end_val, n_points))
             thread.start()
             
@@ -463,45 +459,46 @@ class QKDSimulatorGUI:
             messagebox.showerror("Error", str(e))
     
     def _run_multiple_thread(self, x_key, y_key, start_val, end_val, n_points):
-        """Thread function for running multiple simulations"""
+        """Thread function for running multiple simulations across all 4 protocols"""
+        protocols = ["BB84", "B92", "E91", "BBM92"]
+        simulate_fn = {
+            "BB84": self.simulator.simulate_bb84,
+            "B92": self.simulator.simulate_b92,
+            "E91": self.simulator.simulate_e91,
+            "BBM92": self.simulator.simulate_bbm92,
+        }
         try:
             # Generate x values
-            if n_points == 1:
-                x_values = [start_val]
-            else:
-                x_values = np.linspace(start_val, end_val, n_points)
+            x_values = [start_val] if n_points == 1 else list(np.linspace(start_val, end_val, n_points))
             
-            y_values = []
+            # y_values_all[protocol] grows as simulations complete
+            y_values_all = {p: [] for p in protocols}
             
-            # Get base parameters
-            params = self.get_simulation_params()
-            protocol = self.multi_protocol_var.get()
+            base_params = self.get_simulation_params()
+            total_steps = n_points * len(protocols)
+            step = 0
             
             for i, x_val in enumerate(x_values):
                 if self.abort_flag:
                     break
                 
-                # Update parameter
+                # Build params for this x value
+                params = dict(base_params)
                 params[x_key] = x_val / 100.0 if x_key in ['source_efficiency', 'detector_efficiency', 'perturb_prob', 'qber_fraction'] else x_val
                 
-                # Run simulation
-                if protocol == "BB84":
-                    results = self.simulator.simulate_bb84(params)
-                elif protocol == "B92":
-                    results = self.simulator.simulate_b92(params)
-                elif protocol == "E91":
-                    results = self.simulator.simulate_e91(params)
-                elif protocol == "BBM92":
-                    results = self.simulator.simulate_bbm92(params)
+                for protocol in protocols:
+                    if self.abort_flag:
+                        break
+                    results = simulate_fn[protocol](params)
+                    y_values_all[protocol].append(results[y_key])
+                    step += 1
+                    self.multi_progress_var.set(step / total_steps * 100)
                 
-                y_values.append(results[y_key])
-                
-                # Update progress
-                progress = ((i + 1) / n_points) * 100
-                self.multi_progress_var.set(progress)
-                
-                # Update plot
-                self.root.after(0, self._update_plot, x_values[:i+1], y_values, x_key, y_key)
+                # Update all 4 plots with data collected so far
+                self.root.after(0, self._update_plot,
+                                x_values[:i + 1],
+                                {p: list(y_values_all[p]) for p in protocols},
+                                x_key, y_key)
             
             if not self.abort_flag:
                 self.multi_progress_var.set(100)
@@ -514,14 +511,20 @@ class QKDSimulatorGUI:
             if not self.abort_flag:
                 self.root.after(1000, lambda: self.multi_progress_var.set(0))
     
-    def _update_plot(self, x_values, y_values, x_label, y_label):
-        """Update the plot with new data"""
-        self.ax.clear()
-        self.ax.plot(x_values, y_values, 'b-o', linewidth=2, markersize=5)
-        self.ax.set_xlabel(x_label)
-        self.ax.set_ylabel(y_label)
-        self.ax.grid(True, alpha=0.3)
-        self.fig.tight_layout()
+    def _update_plot(self, x_values, y_values_all, x_label, y_label):
+        """Update all 4 protocol subplots with new data"""
+        colors = {"BB84": "steelblue", "B92": "darkorange", "E91": "forestgreen", "BBM92": "crimson"}
+        for protocol, ax in self.axes.items():
+            ax.clear()
+            ax.set_title(protocol, fontsize=11, fontweight='bold')
+            y_vals = y_values_all.get(protocol, [])
+            if y_vals:
+                ax.plot(x_values[:len(y_vals)], y_vals,
+                        color=colors[protocol], linewidth=2, marker='o', markersize=4)
+            ax.set_xlabel(x_label)
+            ax.set_ylabel(y_label)
+            ax.grid(True, alpha=0.3)
+        self.fig.tight_layout(pad=2.0)
         self.canvas.draw()
 
 
