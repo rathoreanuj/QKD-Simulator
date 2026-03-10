@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: qkd-simulator
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: PYTHON_BIN
+        value: python3
+      - key: PORT
+        value: 3001

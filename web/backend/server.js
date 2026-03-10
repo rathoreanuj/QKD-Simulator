@@ -20,11 +20,12 @@ app.get('/api/health', (req, res) => {
 
 // Python simulator path
 const PYTHON_PATH = path.join(__dirname, '..', '..', 'qkd_simulator.py');
+const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 
 // Execute Python simulator
 function runPythonSimulator(protocol, params) {
   return new Promise((resolve, reject) => {
-    const pythonProcess = spawn('python', [
+    const pythonProcess = spawn(PYTHON_BIN, [
       '-c',
       `
 import sys
@@ -114,7 +115,7 @@ for x_val in x_values:
 print(json.dumps({'x_values': [float(v) for v in x_values], 'data': data}))
 `;
 
-    const pythonProcess = spawn('python', ['-c', pythonCode]);
+    const pythonProcess = spawn(PYTHON_BIN, ['-c', pythonCode]);
     let output = '';
     let errorOutput = '';
 

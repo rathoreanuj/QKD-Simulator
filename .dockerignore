@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Node
+node_modules/
+web/frontend/node_modules/
+web/backend/node_modules/
+
+# React source (already built in Docker stage 1)
+web/frontend/build/
+
+# Dev / test scripts
+*.bat
+quick_test.py
+test_simulator.py
+compare_protocols.py
+example_configs.py
+run_simulation.py
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
