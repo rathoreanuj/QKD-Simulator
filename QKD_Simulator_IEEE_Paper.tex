@@ -1,0 +1,393 @@
+\documentclass[conference,final]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage[final]{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{adjustbox}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{stfloats}
+\usepackage{placeins}
+\graphicspath{{assets/}}
+\DeclareGraphicsExtensions{.png,.jpg,.jpeg,.pdf}
+\setkeys{Gin}{draft=false}
+
+\lstdefinestyle{qkdcode}{
+    basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{teal},
+  breaklines=true,
+    breakatwhitespace=true,
+    columns=fullflexible,
+    keepspaces=true,
+  showstringspaces=false,
+  frame=single
+}
+
+\begin{document}
+
+\title{A Multi-Protocol Quantum Key Distribution Simulator with Hybrid Desktop-Web Architecture for Education, Security Evaluation, and Rapid Design-Space Exploration}
+
+\author{\IEEEauthorblockN{Author Name(s)}
+\IEEEauthorblockA{CSE /IIIT SriCity\\
+Chittoor, India\\
+anujrathore385@gmail.com}}
+
+\maketitle
+
+\begin{abstract}
+Quantum Key Distribution (QKD) enables key establishment with information-theoretic security guarantees, but experimental learning and early-stage benchmarking remain constrained by hardware availability and fragmented tooling. This paper presents a unified software QKD simulator supporting four canonical protocols (BB84, B92, E91, BBM92) with realistic channel and detector modeling. The implementation integrates a Python/Qiskit simulation core with both a desktop interface (Tkinter + Matplotlib) and a web architecture (React + Node/Express + Python bridge), enabling local and remote experimentation with a shared backend. To strengthen statistical reliability, the experimental section reports repeated-run results using mean, standard deviation, and 95\% confidence intervals. Across 20 baseline runs (10,000 qubits/run), BB84 achieved the highest mean key-rate estimate (160,045.15 Hz), while E91 provided Bell-correlation diagnostics with mean S = 2.12. Under E91 eavesdropping mode, mean S dropped to 1.58, indicating reduced nonclassical correlation evidence. The platform is suitable for QKD education, protocol-level comparative analysis, and pre-deployment design-space studies. We also provide camera-ready reporting guidance and a reproducibility template aligned with reviewer expectations for IEEE conference submissions.
+\end{abstract}
+
+\begin{IEEEkeywords}
+quantum key distribution, BB84, B92, E91, BBM92, Qiskit, quantum cryptography, simulator, cybersecurity education, Bell inequality
+\end{IEEEkeywords}
+
+\section{Introduction}
+Quantum-safe communication is increasingly relevant as quantum computing threatens hardness assumptions used by classical public-key systems. QKD mitigates this risk by deriving security from quantum mechanical principles rather than computational complexity. However, practical access to QKD hardware is limited, and many learners encounter either theoretical-only materials or software tools that are protocol-specific and difficult to compare under consistent conditions.
+
+This work presents a unified QKD simulator designed for education, rapid security experimentation, and pre-deployment sensitivity analysis. It combines prepare-and-measure protocols (BB84, B92) and entanglement-based protocols (E91, BBM92) in one simulation core, with realistic impairment toggles and two user-facing modes: desktop GUI and web application.
+
+The manuscript is written as an implementation-focused IEEE conference paper: architecture, mathematical model, reproducible methodology, repeated-run statistics, and camera-ready reporting strategy are all included to support submission readiness.
+
+\section{Problem Statement and Objectives}
+QKD practitioners at beginner and intermediate levels often face four constraints:
+\begin{enumerate}
+\item Limited access to physical photonic/QKD testbeds.
+\item Inability to compare multiple protocols within one consistent environment.
+\item Weak support for realistic channel/device impairments in educational tools.
+\item Inconsistent reporting practices for stochastic simulation outputs.
+\end{enumerate}
+
+Accordingly, this project targets the following objectives:
+\begin{enumerate}
+\item Build one simulator for BB84, B92, E91, and BBM92.
+\item Model source/fiber/detector losses, SOP uncertainty, perturbations, and eavesdropping.
+\item Expose QBER and (for E91) CHSH-style S-statistic security signals.
+\item Provide desktop and web interfaces over a common simulation backend.
+\item Report results with repeated-run statistics (mean/std/CI) for stronger reproducibility.
+\end{enumerate}
+
+\section{Contributions}
+The principal contributions are:
+\begin{enumerate}
+\item \textbf{Unified multi-protocol simulator}: A Python/Qiskit implementation of BB84, B92, E91, BBM92 with protocol-specific sifting logic.
+\item \textbf{Realistic non-ideal modeling}: Combined efficiency and loss model, SOP-angle perturbation, random perturbations, and attack toggles.
+\item \textbf{Hybrid execution architecture}: Local desktop experimentation and browser-based execution sharing the same simulator backend.
+\item \textbf{Statistical reporting framework}: Repeated-run evaluation with mean, standard deviation, and confidence intervals.
+\item \textbf{Camera-ready manuscript strategy}: Figure/caption and placement recommendations tailored to IEEE reviewer expectations.
+\end{enumerate}
+
+\section{Related Work and Positioning}
+\subsection{Foundational Protocols}
+BB84 \cite{bb84} established practical prepare-and-measure QKD; B92 \cite{b92} reduced state complexity to two non-orthogonal states; E91 \cite{e91} introduced Bell-inequality-based entanglement security diagnostics; BBM92 \cite{bbm92} adapted entanglement exchange without explicit Bell-test overhead in the key-establishment loop.
+
+\subsection{Simulation Ecosystem Context}
+SimulaQron \cite{simulaqron} provides broad quantum-network simulation capabilities but targets network emulation workflows. Educational comparative simulation work \cite{akerberg2023} motivates practical parameterized modeling and protocol-wise benchmarking.
+
+\subsection{Comparative Positioning}
+\begin{table}[t]
+\caption{Positioning Against Common References}
+\label{tab:litcompare}
+\centering
+\footnotesize
+\begin{tabular}{p{1.55cm}p{1.35cm}p{1.5cm}p{1.45cm}p{1.35cm}}
+\toprule
+Reference & Protocol Breadth & Practical Channel Model & Security Indicators & Accessibility \\
+\midrule
+BB84 paper & Single & Theoretical & QBER & Low \\
+E91 paper & Single & Theoretical & CHSH/Bell & Low \\
+B92 paper & Single & Limited & QBER & Low \\
+SimulaQron & Broad network scope & Partial & App-dependent & Medium \\
+This work & Four protocols & Realistic practical model & QBER + S (E91) & High \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{System Architecture}
+\subsection{Layered Design}
+The platform is structured as three layers:
+\begin{enumerate} 
+\item \textbf{Simulation Core (Python + Qiskit)}: circuit generation, impairment injection, sifting, and metric computation.
+\item \textbf{Desktop Layer (Tkinter + Matplotlib)}: single-run and multi-run GUI workflows with progress tracking and per-protocol cards.
+\item \textbf{Web Layer (React + Node/Express + Python bridge)}: API-driven browser workflow for all-protocol simulation and parameter sweeps.
+\end{enumerate}
+
+\subsection{Execution and Deployment Notes}
+The web backend exposes health, single-protocol, all-protocol, and sweep endpoints. The project includes containerization support (frontend build + backend runtime + Python dependencies) for reproducible deployment. The simulator uses Qiskit Aer when available and falls back to BasicProvider otherwise.
+
+\section{Mathematical Modeling}
+\subsection{Combined Efficiency and Loss}
+The combined efficiency model is:
+\begin{equation}
+\eta_{tot} = \eta_s \cdot 10^{-\frac{dL}{10}} \cdot \eta_d
+\label{eq:etatot}
+\end{equation}
+where $\eta_s$ is source efficiency, $d$ is distance (km), $L$ is attenuation (dB/km), and $\eta_d$ is detector efficiency.
+
+Loss probability is:
+\begin{equation}
+P_{loss} = 1 - \eta_{tot}
+\label{eq:ploss}
+\end{equation}
+
+\subsection{QBER and Key-Rate Approximation}
+QBER is estimated from a disclosed check subset:
+\begin{equation}
+QBER = \frac{N_{error}}{N_{checked}} \times 100\%
+\label{eq:qber}
+\end{equation}
+
+Protocol-dependent key-rate estimate:
+\begin{equation}
+R_{key} \approx R_s \cdot \eta_{tot} \cdot (1-f_{qber}) \cdot \kappa_p
+\label{eq:keyrate}
+\end{equation}
+where $R_s$ is source rate and $\kappa_p$ captures protocol-specific sifting behavior.
+
+\subsection{E91 Bell-Correlation Diagnostic}
+The CHSH-style statistic is computed as:
+\begin{equation}
+S = |E(a_1,b_1) - E(a_1,b_2) + E(a_2,b_1) + E(a_2,b_2)|
+\label{eq:chsh}
+\end{equation}
+with $S>2$ indicating Bell-inequality violation in idealized interpretation.
+
+\section{Experimental Methodology}
+\subsection{Execution Modes}
+Experiments are reproducible through:
+\begin{enumerate}
+\item desktop GUI execution,
+\item CLI scripting, and
+\item web API execution.
+\end{enumerate}
+
+\subsection{Statistical Protocol}
+To reduce one-off stochastic bias, repeated runs are used. For each metric $x$ with sample size $n$:
+\begin{equation}
+\mu = \frac{1}{n}\sum_{i=1}^{n}x_i, \quad
+\sigma = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n}(x_i-\mu)^2}
+\label{eq:meanstd}
+\end{equation}
+
+95\% confidence interval (normal approximation):
+\begin{equation}
+CI_{95\%} = \mu \pm 1.96\frac{\sigma}{\sqrt{n}}
+\label{eq:ci}
+\end{equation}
+
+\subsection{Parameter Set Used for Reported Multi-Run Statistics}
+The baseline repeated-run study uses 10,000 qubits per run and the following parameters: source rate = 100 MHz, source efficiency = 0.05, fiber length = 25 km, fiber loss = 0.3 dB/km, detector efficiency = 0.2, perturb probability = 0.02, SOP deviation = 0.1 rad, QBER check fraction = 0.1, with losses/perturbation/SOP enabled.
+
+\subsection{Reporting Template for Future Studies}
+\begin{table}[t]
+\caption{Reusable Multi-Run Reporting Template (Fill for Each Protocol/Scenario)}
+\label{tab:template}
+\centering
+\footnotesize
+\begin{tabular}{lccc}
+\toprule
+Metric & Mean ($\mu$) & Std. Dev. ($\sigma$) & 95\% CI \\
+\midrule
+Key rate (Hz) & - & - & $[\mu-\Delta,\mu+\Delta]$ \\
+QBER (\%) & - & - & $[\mu-\Delta,\mu+\Delta]$ \\
+Key length (bits) & - & - & $[\mu-\Delta,\mu+\Delta]$ \\
+S-statistic (E91) & - & - & $[\mu-\Delta,\mu+\Delta]$ \\
+Combined efficiency (\%) & - & - & $[\mu-\Delta,\mu+\Delta]$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Results and Analysis}
+\subsection{Baseline Multi-Protocol Statistics (20 Runs)}
+Key-rate estimates are deterministic in this implementation for fixed physical parameters and protocol factor; run-to-run variance appears primarily in post-sifting key length and (for E91) S-statistic due to stochastic measurement outcomes and finite sample effects.
+
+\subsection{Adversarial E91 Scenario (20 Runs)}
+\begin{table}[!t]
+\caption{E91 with Eavesdropping Enabled (20 Runs, 10,000 Qubits/Run)}
+\label{tab:e91_eve_stats}
+\centering
+\footnotesize
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+Metric & Mean & SD & 95\% CI \\
+\midrule
+QBER (\%) & 0.00 & 0.00 & [0.00, 0.00] \\
+S-statistic & 1.58 & 1.24 & [1.03, 2.12] \\
+Key length (bits) & 3.80 & 1.96 & [2.94, 4.66] \\
+Combined efficiency (\%) & 0.1778 & 0.0000 & [0.1778, 0.1778] \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+The strongest adversarial signature in this configuration is the downward shift in S-statistic rather than QBER. This behavior is implementation-consistent and highlights why Bell-correlation diagnostics remain important in entanglement-based studies.
+
+\subsection{Fiber-Length Sensitivity (Key Rate, 10 Runs Per Point)}
+\begin{table}[!t]
+\caption{Key-Rate Sensitivity to Fiber Length (Mean [95\% CI], Hz)}
+\label{tab:sweep_stats}
+\centering
+\footnotesize
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+Protocol & 10 km & 25 km & 40 km \\
+\midrule
+BB84  & 451068.51 [451068.51, 451068.51] & 160045.15 [160045.15, 160045.15] & 51107.54 [39977.46, 62237.63] \\
+B92   & 112767.13 [112767.13, 112767.13] & 40011.29 [40011.29, 40011.29] & 12776.89 [9994.36, 15559.41] \\
+E91   & 148852.61 [148852.61, 148852.61] & 52814.90 [52814.90, 52814.90] & 18739.43 [18739.43, 18739.43] \\
+BBM92 & 225534.26 [225534.26, 225534.26] & 80022.57 [80022.57, 80022.57] & 25553.77 [19988.73, 31118.82] \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+Increasing distance reduces key-rate, as expected from attenuation in Eq. (\ref{eq:etatot}). Wider intervals at 40 km for selected protocols are linked to finite-run detection sparsity under high-loss conditions.
+
+\section{Camera-Ready IEEE Polish Strategy}
+\subsection{Figure Placement Plan}
+To improve final typeset quality and reviewer readability:
+\begin{enumerate}
+\item Place architecture and GUI overview figures near the end of the architecture section using top placement [!t].
+\item Place sensitivity plots immediately after the corresponding sweep table.
+\item Avoid figure stacks with minimal textual interpretation between them.
+\item Use one-column figures for UI snapshots and reserve two-column width only for dense comparative plots.
+\end{enumerate}
+
+In this camera-ready version, the manuscript uses the project-exported UI and analysis assets directly from the repository. This improves traceability between described workflows and visual evidence in the paper.
+
+\subsection{Caption Style for Reviewers}
+Every caption should be self-contained and state: what is shown, setup context, and why it matters. Example style: ``Protocol-wise key-rate comparison under fixed impairments (20 repeated runs), showing deterministic rate scaling with protocol factor and stochastic variance in post-sifting key length.''
+
+\subsection{Integrated UI and Analysis Figures (Final Assets)}
+\begin{figure*}[!t]
+\centering
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{assets/singlesimulationinput.png}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{assets/SingleSimulationResults.png}
+\end{minipage}
+\caption{Single-simulation workflow. Left: parameter-entry interface. Right: per-protocol result cards under one shared configuration. This paired presentation reduces page fragmentation and directly links setup to outcomes.}
+\label{fig:single_workflow}
+\end{figure*}
+
+\begin{figure*}[!t]
+\centering
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{assets/multiplesimulationinput.png}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{assets/multiplesimulatoinresults.png}
+\end{minipage}
+\caption{Multi-simulation workflow. Left: sweep-configuration interface. Right: resulting protocol trend visualization. This pairing emphasizes reproducible sensitivity setup and outcome interpretation.}
+\label{fig:multi_workflow}
+\end{figure*}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{protocol_comparison.png}
+\caption{Aggregate protocol comparison showing key-rate, QBER, key length, and combined efficiency in the metropolitan baseline configuration.}
+\label{fig:protocol_compare_plot}
+\end{figure}
+
+Backend API dispatch uses a direct protocol-to-function mapping (BB84, B92, E91, BBM92), ensuring consistent invocation logic across GUI, CLI, and web execution paths.
+
+\FloatBarrier
+
+\section{Discussion}
+\subsection{Interpretation of Statistical Findings}
+The repeated-run framework clarifies which outputs are deterministic under fixed inputs (key-rate model in the current implementation) and which outputs are stochastic (key length and S-statistic due to finite sampling and basis matching). This distinction is important for reviewer interpretation and for preventing overclaims from single-run snapshots.
+
+\subsection{Security Interpretation}
+In the reported E91 eavesdropping configuration, S-statistic degradation is a clearer signal than QBER. This does not invalidate QBER-based analysis; rather, it emphasizes that protocol-specific security indicators should be interpreted jointly and in the context of implementation choices.
+
+\subsection{Threats to Validity}
+\begin{itemize}
+\item Finite-run statistics at low effective efficiency can produce sparse-key artifacts.
+\item Current attacker model is simplified and does not cover advanced coherent/adaptive attacks.
+\item Finite-key post-processing (error correction/privacy amplification leakage accounting) is not yet integrated.
+\end{itemize}
+
+\section{Reproducibility and Reporting Checklist}
+\begin{enumerate}
+\item Report full parameter dictionary and enabled toggles per experiment.
+\item State number of runs and qubits per run for each table.
+\item Report mean, SD, and confidence intervals (not only point values).
+\item Separate deterministic model outputs from stochastic outputs during interpretation.
+\item Archive scripts/configuration and generated plots with version/date metadata.
+\end{enumerate}
+
+\appendices
+\section{Statistical Appendix: Multi-Run Script and Seed-Control Protocol}
+\subsection{Run-Script Pseudocode}
+The repeated-run statistics routine follows these steps:
+\begin{enumerate}
+\item Initialize a base parameter dictionary, protocol list, and run count.
+\item For each protocol, execute $n$ runs and store sampled metrics (key rate, QBER, key length, S-statistic when available, and combined efficiency).
+\item Compute sample mean and sample standard deviation for each metric.
+\item Compute 95\% confidence intervals as $\mu \pm 1.96\sigma/\sqrt{n}$.
+\item Repeat with eavesdropping enabled for the E91 adversarial case.
+\item Repeat across selected sweep points (e.g., fiber length) for sensitivity reporting.
+\end{enumerate}
+
+\subsection{Seed-Control Protocol}
+To improve reproducibility while preserving stochastic analysis integrity, use a two-level seed policy:
+\begin{enumerate}
+\item \textbf{Experiment seed:} Fix a master seed $S_0$ per experiment batch and store it in the result metadata.
+\item \textbf{Run seed derivation:} For run index $i$, derive deterministic sub-seeds (e.g., $S_i = S_0 + i$) for Python random and NumPy random generators.
+\item \textbf{Library-level seeding:} If backend simulators expose explicit seed controls, set them from the same $S_i$ to align circuit-level randomness.
+\item \textbf{Audit trail:} Log $S_0$, list of $S_i$, commit hash, configuration dictionary, and script version in a run manifest file.
+\item \textbf{Cross-check mode:} Re-run at least one batch with identical seeds to confirm exact repeatability of deterministic paths.
+\end{enumerate}
+
+Recommended seed-control snippet (implementation hint): initialize \texttt{random.seed(S\_i)} and \texttt{np.random.seed(S\_i)} at the start of each run loop, then call the protocol simulation routine.
+
+\section{Future Work}
+\begin{enumerate}
+\item Integrate finite-key security modules with explicit reconciliation/privacy amplification terms.
+\item Extend attack library (intercept-resend variants, basis-dependent strategies, and richer adversary models).
+\item Add bootstrap or Bayesian interval reporting for low-count regimes.
+\item Improve distributed sweep execution for large parameter grids.
+\item Validate trend consistency against public experimental references and hardware-in-the-loop traces.
+\end{enumerate}
+
+\section{Conclusion}
+This paper presents an implementation-centered, multi-protocol QKD simulator that combines practical impairment modeling with dual desktop-web accessibility. The revised experimental section adopts repeated-run statistics and confidence intervals to improve scientific rigor and reviewer confidence. Results confirm expected protocol-wise key-rate ordering under the implemented model, and demonstrate that E91 Bell-correlation diagnostics provide meaningful additional security information in adversarial settings. The platform is directly useful for QKD teaching, protocol comparison, and early-stage system design studies.
+
+\begin{thebibliography}{99}
+\bibitem{bb84}
+C. H. Bennett and G. Brassard, ``Quantum cryptography: Public key distribution and coin tossing,'' in \textit{Proc. IEEE Int. Conf. Computers, Systems and Signal Processing}, Bangalore, India, 1984, pp. 175-179.
+
+\bibitem{e91}
+A. K. Ekert, ``Quantum cryptography based on Bell's theorem,'' \textit{Phys. Rev. Lett.}, vol. 67, no. 6, pp. 661-663, 1991.
+
+\bibitem{b92}
+C. H. Bennett, ``Quantum cryptography using any two nonorthogonal states,'' \textit{Phys. Rev. Lett.}, vol. 68, no. 21, pp. 3121-3124, 1992.
+
+\bibitem{bbm92}
+C. H. Bennett, G. Brassard, and N. D. Mermin, ``Quantum cryptography without Bell's theorem,'' \textit{Phys. Rev. Lett.}, vol. 68, no. 5, pp. 557-559, 1992.
+
+\bibitem{simulaqron}
+A. Dahlberg, M. Skrzypczyk, T. Coopmans, L. Wubben, F. Rozpedek, and S. Wehner, ``SimulaQron: A simulator for developing quantum internet software,'' \textit{Quantum Sci. Technol.}, vol. 4, no. 1, 2019.
+
+\bibitem{akerberg2023}
+E. Akerberg and E. Asgrim, ``Simulation framework and comparative analysis for practical QKD protocol behavior,'' KTH Royal Institute of Technology, 2023.
+
+\bibitem{qiskit}
+Qiskit Development Team, ``Qiskit: An Open-source Framework for Quantum Computing,'' 2024. [Online]. Available: \url{https://qiskit.org}
+
+\end{thebibliography}
+
+\end{document}

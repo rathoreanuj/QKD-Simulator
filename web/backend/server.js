@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -10,8 +11,14 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from React build (for production)
-app.use(express.static(path.join(__dirname, '../frontend/build')));
+const frontendBuildDir = path.join(__dirname, '../frontend/build');
+const frontendBuildIndex = path.join(frontendBuildDir, 'index.html');
+const hasFrontendBuild = fs.existsSync(frontendBuildIndex);
+
+// Serve static files only in production-style mode when build exists.
+if (hasFrontendBuild) {
+  app.use(express.static(frontendBuildDir));
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -20,7 +27,10 @@ app.get('/api/health', (req, res) => {
 
 // Python simulator path
 const PYTHON_PATH = path.join(__dirname, '..', '..', 'qkd_simulator.py');
-const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
+const venvPythonWin = path.join(__dirname, '..', '..', '.venv', 'Scripts', 'python.exe');
+const venvPythonUnix = path.join(__dirname, '..', '..', '.venv', 'bin', 'python');
+const PYTHON_BIN = process.env.PYTHON_BIN ||
+  (fs.existsSync(venvPythonWin) ? venvPythonWin : (fs.existsSync(venvPythonUnix) ? venvPythonUnix : 'python3'));
 
 // Execute Python simulator
 function runPythonSimulator(protocol, params) {
@@ -266,12 +276,18 @@ app.post('/api/simulate/:protocol', async (req, res) => {
   }
 });
 
-// Serve React app for all other routes (production)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
-});
+// Serve React app for all other routes only if production build exists.
+if (hasFrontendBuild) {
+  app.get('*', (req, res) => {
+    res.sendFile(frontendBuildIndex);
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`✓ Node.js backend server running on port ${PORT}`);
   console.log(`✓ API endpoints available at http://localhost:${PORT}/api`);
+  console.log(`✓ Python executable: ${PYTHON_BIN}`);
+  if (!hasFrontendBuild) {
+    console.log('ℹ Frontend build not found. Run frontend separately with `npm start` in web/frontend (dev mode).');
+  }
 });
