@@ -21,7 +21,7 @@ if (hasFrontendBuild) {
 }
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Node.js backend is running' });
 });
 
