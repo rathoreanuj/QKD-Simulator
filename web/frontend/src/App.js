@@ -164,10 +164,7 @@ function App() {
       </div>
 
       <footer className="footer">
-        <p>
-          Based on research by Erik Åkerberg & Erik Åsgrim (2023) - 
-          KTH Royal Institute of Technology
-        </p>
+        <p>@copyright Dr. Kartick Sutradhar</p>
       </footer>
     </div>
   );
